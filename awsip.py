@@ -17,6 +17,7 @@ import logging
 STARTTIME = datetime.now()
 
 LOG_PATH = 'log'
+LOG_FILENAME = f'{STARTTIME.strftime("%m%d%Y-%H%M%S")}.log'
 
 # Expects to find this defined in the user's ~/.aws/config
 BOTO3_PROFILE_NAME = 'awsip'
@@ -36,6 +37,7 @@ def initialize_logging():
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
+            logging.FileHandler(LOG_FILENAME),
             logging.StreamHandler()
         ]
     )
