@@ -5,6 +5,28 @@ from urllib.request import urlopen
 from xml.etree import ElementTree as ET
 from datetime import datetime
 
+import logging
+
+STARTTIME = datetime.now()
+
+LOG_PATH = 'log'
+LOG_FILENAME = STARTTIME.strftime('%m%d%Y-%H%M%S')
+
+
+def initialize_logging():
+    '''
+    Set up a logger for console and file output.
+    '''
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler("lastrun.log"),
+            logging.StreamHandler()
+        ]
+    )
+
 
 def get_ip():
     '''
@@ -27,13 +49,7 @@ def get_comment(ip):
     Return a comment to document when the route change was sent in
     '''
 
-    now = datetime.now()
-    comment = f'Updated IP to {ip} on {now.strftime("%m/%d/%Y-%H:%M:%S")}'
-
-    if comment:
-        return comment
-    else:
-        raise Exception(f"Error forming comment. IP={ip}, now={now}")
+    return f'Updated IP to {ip} on {STARTTIME.strftime("%m/%d/%Y-%H:%M:%S")}'
 
 
 HOSTED_ZONE_ID = 'Z2BTS599RFFOO'  # benjijang.com, from the AWS mgmt console
@@ -99,21 +115,29 @@ def get_record_ip(client):
 
 
 if __name__ == '__main__':
+    initialize_logging()
+    logging.info('This is an info message')
+    logging.info(f'Starting up')
 
-    current_ip = get_ip()
+    try:
+        current_ip = get_ip()
 
-    print(f'My public IP is {current_ip}')
+        logging.info(f'Public IP={current_ip}')
 
-    client = get_boto3_client()
-    record_ip = get_record_ip(client)
-    print(
-        f'Got existing record for {RECORD_NAME}({RECORD_TYPE}). IP={record_ip}')
+        client = get_boto3_client()
+        record_ip = get_record_ip(client)
+        logging.info(
+            f'Got existing record for {RECORD_NAME}({RECORD_TYPE}). Record IP={record_ip}')
 
-    if record_ip != current_ip:
-        comment = get_comment(current_ip)
-        print(f'Submitting comment: "{comment}"')
+        if record_ip != current_ip:
+            comment = get_comment(current_ip)
+            logging.info(f'Submitting comment: "{comment}"')
 
-        update_record_ip(client, current_ip, comment)
-        print('Successfully changed record')
-    else:
-        print(f'No need to update IP. IP={record_ip}')
+            update_record_ip(client, current_ip, comment)
+            logging.info('Successfully changed record')
+        else:
+            logging.info(f'No need to update IP.')
+    except ex:
+        logging.error(ex)
+
+    logging.info(f'Shutting down')
