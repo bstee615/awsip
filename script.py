@@ -12,9 +12,11 @@ STARTTIME = datetime.now()
 LOG_PATH = 'log'
 LOG_FILENAME = STARTTIME.strftime('%m%d%Y-%H%M%S')
 
+# Expects to find this defined in the user's ~/.aws/config
 BOTO3_PROFILE_NAME = 'awsip'
 
-HOSTED_ZONE_ID = 'Z2BTS599RFFOO'  # benjijang.com, from the AWS mgmt console
+# ID for benjijang.com, from the AWS mgmt console
+HOSTED_ZONE_ID = 'Z2BTS599RFFOO'
 RECORD_NAME = 'crib.benjijang.com'
 RECORD_TYPE = 'A'
 
