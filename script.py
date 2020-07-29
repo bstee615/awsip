@@ -44,12 +44,12 @@ def get_ip():
             raise Exception(f"Could not get IP from {ip_svc_url}")
 
 
-def get_comment(ip):
+def get_comment(prev_ip, current_ip):
     '''
     Return a comment to document when the route change was sent in
     '''
 
-    return f'Updated IP to {ip} on {STARTTIME.strftime("%m/%d/%Y-%H:%M:%S")}'
+    return f'Updated IP {prev_ip} -> {current_ip} on {STARTTIME.strftime("%m/%d/%Y-%H:%M:%S")}'
 
 
 BOTO3_PROFILE_NAME = 'awsip'
@@ -133,7 +133,7 @@ if __name__ == '__main__':
             f'Got existing record for {RECORD_NAME}({RECORD_TYPE}). Record IP={record_ip}')
 
         if record_ip != current_ip:
-            comment = get_comment(current_ip)
+            comment = get_comment(record_ip, current_ip)
             logging.info(f'Submitting comment: "{comment}"')
 
             update_record_ip(client, current_ip, comment)
