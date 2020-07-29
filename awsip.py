@@ -1,5 +1,12 @@
 #!/bin/python3
 
+'''
+AWSIP: Update the IP of a Route 53 record if it's been changed.
+
+My ISP can change my public IP anytime unless I shell out $$$ for a business connection...qq
+This script is meant to run periodically, keeping a Route53 record consistent with my home router's public IP.
+'''
+
 import boto3
 from urllib.request import urlopen
 from xml.etree import ElementTree as ET
@@ -10,12 +17,11 @@ import logging
 STARTTIME = datetime.now()
 
 LOG_PATH = 'log'
-LOG_FILENAME = STARTTIME.strftime('%m%d%Y-%H%M%S')
 
 # Expects to find this defined in the user's ~/.aws/config
 BOTO3_PROFILE_NAME = 'awsip'
 
-# ID for benjijang.com, from the AWS mgmt console
+# ID/details for benjijang.com, from the AWS mgmt console
 HOSTED_ZONE_ID = 'Z2BTS599RFFOO'
 RECORD_NAME = 'crib.benjijang.com'
 RECORD_TYPE = 'A'
@@ -30,7 +36,6 @@ def initialize_logging():
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
-            logging.FileHandler("lastrun.log"),
             logging.StreamHandler()
         ]
     )
