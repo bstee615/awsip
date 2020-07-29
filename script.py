@@ -12,6 +12,12 @@ STARTTIME = datetime.now()
 LOG_PATH = 'log'
 LOG_FILENAME = STARTTIME.strftime('%m%d%Y-%H%M%S')
 
+BOTO3_PROFILE_NAME = 'awsip'
+
+HOSTED_ZONE_ID = 'Z2BTS599RFFOO'  # benjijang.com, from the AWS mgmt console
+RECORD_NAME = 'crib.benjijang.com'
+RECORD_TYPE = 'A'
+
 
 def initialize_logging():
     '''
@@ -50,14 +56,6 @@ def get_comment(prev_ip, current_ip):
     '''
 
     return f'Updated IP {prev_ip} -> {current_ip} on {STARTTIME.strftime("%m/%d/%Y-%H:%M:%S")}'
-
-
-BOTO3_PROFILE_NAME = 'awsip'
-
-
-HOSTED_ZONE_ID = 'Z2BTS599RFFOO'  # benjijang.com, from the AWS mgmt console
-RECORD_NAME = 'crib.benjijang.com'
-RECORD_TYPE = 'A'
 
 
 def get_boto3_client():
