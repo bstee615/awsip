@@ -137,7 +137,7 @@ if __name__ == '__main__':
             logging.info('Successfully changed record')
         else:
             logging.info(f'No need to update IP.')
-    except ex:
+    except Exception as ex:
         logging.error(ex)
 
     logging.info(f'Shutting down')
