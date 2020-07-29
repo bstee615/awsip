@@ -52,6 +52,9 @@ def get_comment(ip):
     return f'Updated IP to {ip} on {STARTTIME.strftime("%m/%d/%Y-%H:%M:%S")}'
 
 
+BOTO3_PROFILE_NAME = 'awsip'
+
+
 HOSTED_ZONE_ID = 'Z2BTS599RFFOO'  # benjijang.com, from the AWS mgmt console
 RECORD_NAME = 'crib.benjijang.com'
 RECORD_TYPE = 'A'
@@ -62,7 +65,7 @@ def get_boto3_client():
     Get a boto3 client with Route 53 access.
     '''
 
-    session = boto3.Session(profile_name='awsip')
+    session = boto3.Session(profile_name=BOTO3_PROFILE_NAME)
     return session.client('route53')
 
 
