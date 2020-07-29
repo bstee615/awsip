@@ -1,6 +1,6 @@
 #!/bin/python3
 
-import requests
+import boto3
 from urllib.request import urlopen
 from xml.etree import ElementTree as ET
 from datetime import datetime
@@ -11,51 +11,109 @@ def get_ip():
     Return this computer's public IP
     '''
 
-    with urlopen('https://api.ipify.org') as response:
-        return response.read().decode('utf-8')
+    ip_svc_url = 'https://api.ipify.org'
+
+    with urlopen(ip_svc_url) as response:
+        ip = response.read().decode('utf-8')
+
+        if ip:
+            return ip
+        else:
+            raise Exception(f"Could not get IP from {ip_svc_url}")
 
 
-ip = get_ip()
-print(f'My public IP is {ip}')
-
-comment = f'Updated IP to {ip} on {datetime.now().strftime("%m/%d/%Y-%H:%M:%S")}'
-print(f'Submitting comment: {comment}')
-
-xmlns = 'https://route53.amazonaws.com/doc/2013-04-01/'  # AWS Route 53 XML namespace
-
-
-def get_xml(myip, comment):
+def get_comment(ip):
     '''
-    Load the XML template and replace the necessary fields, then
-    return the element tree root.
+    Return a comment to document when the route change was sent in
     '''
 
-    tree = ET.ElementTree(file="request.xml")
-    root = tree.getroot()
+    now = datetime.now()
+    comment = f'Updated IP to {ip} on {now.strftime("%m/%d/%Y-%H:%M:%S")}'
 
-    # Update the comment
-    comment_path = f'.//{{{xmlns}}}Comment'
-    comment_els = root.findall(comment_path)
-    if not comment_els:
+    if comment:
+        return comment
+    else:
+        raise Exception(f"Error forming comment. IP={ip}, now={now}")
+
+
+HOSTED_ZONE_ID = 'Z2BTS599RFFOO'  # benjijang.com, from the AWS mgmt console
+RECORD_NAME = 'crib.benjijang.com'
+RECORD_TYPE = 'A'
+
+
+def get_boto3_client():
+    '''
+    Get a boto3 client with Route 53 access.
+    '''
+
+    session = boto3.Session(profile_name='awsip')
+    return session.client('route53')
+
+
+def update_record_ip(client, ip, comment):
+    '''
+    Update the record's IP with a comment.
+    '''
+
+    response = client.change_resource_record_sets(
+        HostedZoneId=HOSTED_ZONE_ID,
+        ChangeBatch={
+            'Comment': comment,
+            'Changes': [
+                {
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': {
+                        'Name': RECORD_NAME,
+                        'Type': RECORD_TYPE,
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': ip}]
+                    }
+                }]
+        }
+    )
+    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        raise Exception(f'Error updating record. response={response}')
+
+
+def get_record_ip(client):
+    '''
+    Get the IP of the currently existing record.
+    '''
+
+    response = client.list_resource_record_sets(
+        HostedZoneId=HOSTED_ZONE_ID,
+        StartRecordName=RECORD_NAME,
+        StartRecordType=RECORD_TYPE,
+        MaxItems='1'
+    )
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        records = response['ResourceRecordSets']
+        crib_record = records[0]
+        crib_resource_records = crib_record['ResourceRecords']
+        crib_primary_resource_record = crib_record['ResourceRecords'][0]
+        crib_ip = crib_primary_resource_record['Value']
+        return crib_ip
+    else:
         raise Exception(
-            f'could not find Comment element with path: {comment_path}')
-    comment_el = comment_els[0]
-    comment_el.text = comment
-
-    # Update the record's IP
-    ip_path = f'.//{{{xmlns}}}ResourceRecord/{{{xmlns}}}Value'
-    ip_els = root.findall(ip_path)
-    if not ip_els:
-        raise Exception(f'could not find IP element with path: {ip_path}')
-    ip_el = ip_els[0]
-    ip_el.text = myip
-
-    return root
+            f'Error getting the current record. response={response}')
 
 
-xml = get_xml(ip, comment)
-xmlbytes = ET.tostring(xml, xml_declaration=True,
-                       encoding="UTF-8", default_namespace=xmlns)
-xmlstr = xmlbytes.decode('utf-8')
+if __name__ == '__main__':
 
-# POST /2013-04-01/hostedzone/Z2BTS599RFFOO/rrset HTTP/1.1
+    current_ip = get_ip()
+
+    print(f'My public IP is {current_ip}')
+
+    client = get_boto3_client()
+    record_ip = get_record_ip(client)
+    print(
+        f'Got existing record for {RECORD_NAME}({RECORD_TYPE}). IP={record_ip}')
+
+    if record_ip != current_ip:
+        comment = get_comment(current_ip)
+        print(f'Submitting comment: "{comment}"')
+
+        update_record_ip(client, current_ip, comment)
+        print('Successfully changed record')
+    else:
+        print(f'No need to update IP. IP={record_ip}')
